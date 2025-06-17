@@ -3481,6 +3481,44 @@ int mapi_dissect_enum_MAPISTATUS(tvbuff_t *tvb _U_, int offset _U_, packet_info 
 #define MAPI_PROP_RESERVED (0xFFFFFFFF)
 extern const value_string mapi_MAPITAGS_vals[];
 int mapi_dissect_enum_MAPITAGS(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t *param _U_);
+#define PT_UNSPECIFIED (0x0000)
+#define PT_NULL (0x0001)
+#define PT_I2 (0x0002)
+#define PT_LONG (0x0003)
+#define PT_R4 (0x0004)
+#define PT_DOUBLE (0x0005)
+#define PT_CURRENCY (0x0006)
+#define PT_APPTIME (0x0007)
+#define PT_ERROR (0x000a)
+#define PT_BOOLEAN (0x000b)
+#define PT_OBJECT (0x000d)
+#define PT_I8 (0x0014)
+#define PT_STRING8 (0x001e)
+#define PT_UNICODE (0x001f)
+#define PT_SYSTIME (0x0040)
+#define PT_CLSID (0x0048)
+#define PT_SVREID (0x00FB)
+#define PT_SRESTRICT (0x00FD)
+#define PT_ACTIONS (0x00FE)
+#define PT_BINARY (0x0102)
+#define PT_MV_I2 (0x1002)
+#define PT_MV_LONG (0x1003)
+#define PT_MV_R4 (0x1004)
+#define PT_MV_DOUBLE (0x1005)
+#define PT_MV_CURRENCY (0x1006)
+#define PT_MV_APPTIME (0x1007)
+#define PT_MV_I8 (0x1014)
+#define PT_MV_STRING8 (0x101e)
+#define PT_MV_UNICODE (0x101f)
+#define PT_MV_SYSTIME (0x1040)
+#define PT_MV_CLSID (0x1048)
+#define PT_MV_BINARY (0x1102)
+extern const value_string mapi_property_types_vals[];
+int mapi_dissect_enum_property_types(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t *param _U_);
+int mapi_dissect_struct_MAPIUID(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_);
+int mapi_dissect_struct_SShortArray(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_);
+int mapi_dissect_struct_MV_UNICODE_STRUCT(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_);
+int mapi_dissect_struct_SDateTimeArray(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_);
 int mapi_dissect_struct_DATA_BLOB(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_);
 #define MAPI_STORE (0x1)
 #define MAPI_ADDRBOOK (0x2)

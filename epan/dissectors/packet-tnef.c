@@ -18,7 +18,8 @@
 #include <wiretap/tnef.h>
 
 #include "packet-dcerpc.h"
-#include "packet-dcerpc-nspi.h"
+// #include "packet-dcerpc-nspi.h"
+#include "packet-dcerpc-mapi.h"
 #include "packet-ber.h"
 
 #define PNAME  "Transport-Neutral Encapsulation Format"
@@ -354,7 +355,7 @@ static void dissect_mapiprops(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tre
 
     /* add a nice name to the property */
     tag = tvb_get_letohl(tvb, offset);
-    proto_item_append_text(prop_item, " %s", val_to_str(tag, nspi_MAPITAGS_vals, "Unknown tag (0x%08lx)"));
+    proto_item_append_text(prop_item, " %s", val_to_str(tag, mapi_MAPITAGS_vals, "Unknown tag (0x%08lx)"));
 
     proto_tree_add_item(tag_tree, hf_tnef_property_tag_type, tvb, offset, 2, ENC_LITTLE_ENDIAN);
     offset += 2;
@@ -420,34 +421,34 @@ static void dissect_mapiprops(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tre
         offset = dissect_counted_values (tvb, offset, hf_tnef_PropValue_lpszW, pinfo, prop_tree, true, ENC_UTF_16|ENC_LITTLE_ENDIAN);
         break;
       case PT_CLSID:
-        offset = nspi_dissect_struct_MAPIUID(tvb, offset, pinfo, prop_tree, &di, drep, hf_tnef_PropValue_lpguid, 0);
+        offset = mapi_dissect_struct_MAPIUID(tvb, offset, pinfo, prop_tree, &di, drep, hf_tnef_PropValue_lpguid, 0);
         break;
       case PT_SYSTIME:
-        offset = nspi_dissect_struct_FILETIME(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_ft,0);
+        offset = mapi_dissect_struct_FILETIME(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_ft,0);
         break;
       case PT_ERROR:
-        offset = nspi_dissect_enum_MAPISTATUS(tvb, offset, pinfo, prop_tree, &di, drep, hf_tnef_PropValue_err, 0);
+        offset = mapi_dissect_enum_MAPISTATUS(tvb, offset, pinfo, prop_tree, &di, drep, hf_tnef_PropValue_err, 0);
         break;
       case PT_MV_I2:
-        offset = nspi_dissect_struct_SShortArray(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVi,0);
+        offset = mapi_dissect_struct_SShortArray(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVi,0);
         break;
       case PT_MV_LONG:
-        offset = nspi_dissect_struct_MV_LONG_STRUCT(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVl,0);
+        offset = mapi_dissect_struct_MV_LONG_STRUCT(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVl,0);
         break;
       case PT_MV_STRING8:
-        offset = nspi_dissect_struct_SLPSTRArray(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVszA,0);
+        offset = mapi_dissect_struct_SLPSTRArray(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVszA,0);
         break;
       case PT_MV_BINARY:
-        offset = nspi_dissect_struct_SBinaryArray(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVbin,0);
+        offset = mapi_dissect_struct_SBinaryArray(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVbin,0);
         break;
       case PT_MV_CLSID:
-        offset = nspi_dissect_struct_SGuidArray(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVguid,0);
+        offset = mapi_dissect_struct_SGuidArray(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVguid,0);
         break;
       case PT_MV_UNICODE:
-        offset = nspi_dissect_struct_MV_UNICODE_STRUCT(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVszW,0);
+        offset = mapi_dissect_struct_MV_UNICODE_STRUCT(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVszW,0);
         break;
       case PT_MV_SYSTIME:
-        offset = nspi_dissect_struct_SDateTimeArray(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVft,0);
+        offset = mapi_dissect_struct_SDateTimeArray(tvb,offset,pinfo,prop_tree,&di,drep,hf_tnef_PropValue_MVft,0);
         break;
       case PT_NULL:
         offset = PIDL_dissect_uint32(tvb, offset, pinfo, prop_tree, &di, drep, hf_tnef_PropValue_null, 0);
@@ -730,10 +731,10 @@ proto_register_tnef(void)
       { "Property", "tnef.property", FT_NONE,  BASE_NONE, NULL, 0x0,
         NULL, HFILL }},
     { &hf_tnef_property_tag,
-      { "Tag", "tnef.property.tag", FT_UINT32,  BASE_HEX, VALS(nspi_MAPITAGS_vals), 0x0,
+      { "Tag", "tnef.property.tag", FT_UINT32,  BASE_HEX, VALS(mapi_MAPITAGS_vals), 0x0,
         NULL, HFILL }},
     { &hf_tnef_property_tag_type,
-      { "Type", "tnef.property.tag.type", FT_UINT16,  BASE_HEX, VALS(nspi_property_types_vals), 0x0,
+      { "Type", "tnef.property.tag.type", FT_UINT16,  BASE_HEX, VALS(mapi_property_types_vals), 0x0,
         NULL, HFILL }},
     { &hf_tnef_property_tag_id,
       { "Tag", "tnef.property.tag.id", FT_UINT16,  BASE_HEX, NULL, 0x0,
@@ -782,7 +783,7 @@ proto_register_tnef(void)
     { &hf_tnef_PropValue_ft,
       { "Ft", "tnef.PropValue.ft", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
     { &hf_tnef_PropValue_err,
-      { "Err", "tnef.PropValue.err", FT_UINT32, BASE_DEC, VALS(nspi_MAPISTATUS_vals), 0, NULL, HFILL }},
+      { "Err", "tnef.PropValue.err", FT_UINT32, BASE_DEC, VALS(mapi_MAPISTATUS_vals), 0, NULL, HFILL }},
     { &hf_tnef_PropValue_MVi,
       { "Mvi", "tnef.PropValue.MVi", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
     { &hf_tnef_PropValue_MVl,

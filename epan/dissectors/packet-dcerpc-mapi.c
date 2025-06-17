@@ -26,6 +26,10 @@ void proto_reg_handoff_dcerpc_mapi(void);
 static int ett_mapi_connect_request;
 static int ett_ServerObjectHandleTable;
 static int ett_dcerpc_mapi;
+static int ett_mapi_MAPIUID;
+static int ett_mapi_SShortArray;
+static int ett_mapi_MV_UNICODE_STRUCT;
+static int ett_mapi_SDateTimeArray;
 static int ett_mapi_DATA_BLOB;
 static int ett_mapi_SBinary_short;
 static int ett_mapi_mapi_MV_LONG_STRUCT;
@@ -975,12 +979,15 @@ static int hf_mapi_LongTermId_padding;
 static int hf_mapi_MAPINAMEID_kind;
 static int hf_mapi_MAPINAMEID_lpguid;
 static int hf_mapi_MAPINAMEID_ulKind;
+static int hf_mapi_MAPIUID_ab;
 static int hf_mapi_MSGFLAG_READ_CLEAR_NRN_PENDING;
 static int hf_mapi_MSGFLAG_READ_CLEAR_READ_FLAG;
 static int hf_mapi_MSGFLAG_READ_CLEAR_RN_PENDING;
 static int hf_mapi_MSGFLAG_READ_GENERATE_RECEIPT_ONLY;
 static int hf_mapi_MSGFLAG_READ_MAPI_DEFERRED_ERRORS;
 static int hf_mapi_MSGFLAG_READ_SUPPRESS_RECEIPT;
+static int hf_mapi_MV_UNICODE_STRUCT_cValues;
+static int hf_mapi_MV_UNICODE_STRUCT_lpi;
 static int hf_mapi_MaximumByteCount_value;
 static int hf_mapi_MessageClass_lpszA;
 static int hf_mapi_MessageClass_lpszW;
@@ -1509,6 +1516,8 @@ static int hf_mapi_RuleData_RuleDataFlags;
 static int hf_mapi_RulesTableFlags_RulesTableFlags_Unicode;
 static int hf_mapi_SBinary_short_cb;
 static int hf_mapi_SBinary_short_lpb;
+static int hf_mapi_SDateTimeArray_cValues;
+static int hf_mapi_SDateTimeArray_lpft;
 static int hf_mapi_SRestriction_and_res;
 static int hf_mapi_SRestriction_and_rt;
 static int hf_mapi_SRestriction_comment_res;
@@ -1517,6 +1526,8 @@ static int hf_mapi_SRestriction_or_res;
 static int hf_mapi_SRestriction_or_rt;
 static int hf_mapi_SRestriction_sub_res;
 static int hf_mapi_SRestriction_sub_rt;
+static int hf_mapi_SShortArray_cValues;
+static int hf_mapi_SShortArray_lpi;
 static int hf_mapi_SSortOrderSet_aSort;
 static int hf_mapi_SSortOrderSet_cCategories;
 static int hf_mapi_SSortOrderSet_cExpanded;
@@ -5391,6 +5402,55 @@ const value_string mapi_MAPITAGS_vals[] = {
 	{ MAPI_PROP_RESERVED, "MAPI_PROP_RESERVED" },
 { 0, NULL }
 };
+const value_string mapi_property_types_vals[] = {
+	{ PT_UNSPECIFIED, "PT_UNSPECIFIED" },
+	{ PT_NULL, "PT_NULL" },
+	{ PT_I2, "PT_I2" },
+	{ PT_LONG, "PT_LONG" },
+	{ PT_R4, "PT_R4" },
+	{ PT_DOUBLE, "PT_DOUBLE" },
+	{ PT_CURRENCY, "PT_CURRENCY" },
+	{ PT_APPTIME, "PT_APPTIME" },
+	{ PT_ERROR, "PT_ERROR" },
+	{ PT_BOOLEAN, "PT_BOOLEAN" },
+	{ PT_OBJECT, "PT_OBJECT" },
+	{ PT_I8, "PT_I8" },
+	{ PT_STRING8, "PT_STRING8" },
+	{ PT_UNICODE, "PT_UNICODE" },
+	{ PT_SYSTIME, "PT_SYSTIME" },
+	{ PT_CLSID, "PT_CLSID" },
+	{ PT_SVREID, "PT_SVREID" },
+	{ PT_SRESTRICT, "PT_SRESTRICT" },
+	{ PT_ACTIONS, "PT_ACTIONS" },
+	{ PT_BINARY, "PT_BINARY" },
+	{ PT_MV_I2, "PT_MV_I2" },
+	{ PT_MV_LONG, "PT_MV_LONG" },
+	{ PT_MV_R4, "PT_MV_R4" },
+	{ PT_MV_DOUBLE, "PT_MV_DOUBLE" },
+	{ PT_MV_CURRENCY, "PT_MV_CURRENCY" },
+	{ PT_MV_APPTIME, "PT_MV_APPTIME" },
+	{ PT_MV_I8, "PT_MV_I8" },
+	{ PT_MV_STRING8, "PT_MV_STRING8" },
+	{ PT_MV_UNICODE, "PT_MV_UNICODE" },
+	{ PT_MV_SYSTIME, "PT_MV_SYSTIME" },
+	{ PT_MV_CLSID, "PT_MV_CLSID" },
+	{ PT_MV_BINARY, "PT_MV_BINARY" },
+{ 0, NULL }
+};
+static int mapi_dissect_element_MAPIUID_ab(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_MAPIUID_ab_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_SShortArray_cValues(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_SShortArray_lpi(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_SShortArray_lpi_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_SShortArray_lpi__(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_MV_UNICODE_STRUCT_cValues(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_MV_UNICODE_STRUCT_lpi(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_MV_UNICODE_STRUCT_lpi_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_MV_UNICODE_STRUCT_lpi__(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_SDateTimeArray_cValues(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_SDateTimeArray_lpft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_SDateTimeArray_lpft_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int mapi_dissect_element_SDateTimeArray_lpft__(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int mapi_dissect_element_DATA_BLOB_data(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int mapi_dissect_element_DATA_BLOB_data_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int mapi_dissect_element_DATA_BLOB_length(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
@@ -12260,6 +12320,315 @@ mapi_dissect_enum_MAPITAGS(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo
 }
 
 
+/* IDL: enum { */
+/* IDL: 	PT_UNSPECIFIED=0x0000, */
+/* IDL: 	PT_NULL=0x0001, */
+/* IDL: 	PT_I2=0x0002, */
+/* IDL: 	PT_LONG=0x0003, */
+/* IDL: 	PT_R4=0x0004, */
+/* IDL: 	PT_DOUBLE=0x0005, */
+/* IDL: 	PT_CURRENCY=0x0006, */
+/* IDL: 	PT_APPTIME=0x0007, */
+/* IDL: 	PT_ERROR=0x000a, */
+/* IDL: 	PT_BOOLEAN=0x000b, */
+/* IDL: 	PT_OBJECT=0x000d, */
+/* IDL: 	PT_I8=0x0014, */
+/* IDL: 	PT_STRING8=0x001e, */
+/* IDL: 	PT_UNICODE=0x001f, */
+/* IDL: 	PT_SYSTIME=0x0040, */
+/* IDL: 	PT_CLSID=0x0048, */
+/* IDL: 	PT_SVREID=0x00FB, */
+/* IDL: 	PT_SRESTRICT=0x00FD, */
+/* IDL: 	PT_ACTIONS=0x00FE, */
+/* IDL: 	PT_BINARY=0x0102, */
+/* IDL: 	PT_MV_I2=0x1002, */
+/* IDL: 	PT_MV_LONG=0x1003, */
+/* IDL: 	PT_MV_R4=0x1004, */
+/* IDL: 	PT_MV_DOUBLE=0x1005, */
+/* IDL: 	PT_MV_CURRENCY=0x1006, */
+/* IDL: 	PT_MV_APPTIME=0x1007, */
+/* IDL: 	PT_MV_I8=0x1014, */
+/* IDL: 	PT_MV_STRING8=0x101e, */
+/* IDL: 	PT_MV_UNICODE=0x101f, */
+/* IDL: 	PT_MV_SYSTIME=0x1040, */
+/* IDL: 	PT_MV_CLSID=0x1048, */
+/* IDL: 	PT_MV_BINARY=0x1102, */
+/* IDL: } */
+
+int
+mapi_dissect_enum_property_types(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t *param _U_)
+{
+	uint32_t parameter=0;
+	if (param) {
+		parameter = *param;
+	}
+	offset = dissect_ndr_uint32(tvb, offset, pinfo, tree, di, drep, hf_index, &parameter);
+	if (param) {
+		*param = parameter;
+	}
+	return offset;
+}
+
+
+/* IDL: struct _MAPIUID { */
+/* IDL: 	uint8 ab[16]; */
+/* IDL: } */
+
+static int
+mapi_dissect_element_MAPIUID_ab(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	int i;
+	for (i = 0; i < 16; i++)
+		offset = mapi_dissect_element_MAPIUID_ab_(tvb, offset, pinfo, tree, di, drep);
+
+	return offset;
+}
+
+static int
+mapi_dissect_element_MAPIUID_ab_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint8(tvb, offset, pinfo, tree, di, drep, hf_mapi_MAPIUID_ab, 0);
+
+	return offset;
+}
+
+int
+mapi_dissect_struct_MAPIUID(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_)
+{
+	proto_item *item = NULL;
+	proto_tree *tree = NULL;
+	int old_offset;
+
+	ALIGN_TO_4_BYTES;
+
+	old_offset = offset;
+
+	if (parent_tree) {
+		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, -1, ENC_NA);
+		tree = proto_item_add_subtree(item, ett_mapi_MAPIUID);
+	}
+
+	offset = mapi_dissect_element_MAPIUID_ab(tvb, offset, pinfo, tree, di, drep);
+
+
+	proto_item_set_len(item, offset-old_offset);
+
+
+	if (di->call_data->flags & DCERPC_IS_NDR64) {
+		ALIGN_TO_4_BYTES;
+	}
+
+	return offset;
+}
+
+
+/* IDL: struct { */
+/* IDL: 	uint32 cValues; */
+/* IDL: 	[size_is(cValues)] [unique(1)] uint16 *lpi; */
+/* IDL: } */
+
+static int
+mapi_dissect_element_SShortArray_cValues(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_mapi_SShortArray_cValues, 0);
+
+	return offset;
+}
+
+static int
+mapi_dissect_element_SShortArray_lpi(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = dissect_ndr_embedded_pointer(tvb, offset, pinfo, tree, di, drep, mapi_dissect_element_SShortArray_lpi_, NDR_POINTER_UNIQUE, "Pointer to Lpi (uint16)",hf_mapi_SShortArray_lpi);
+
+	return offset;
+}
+
+static int
+mapi_dissect_element_SShortArray_lpi_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = dissect_ndr_ucarray(tvb, offset, pinfo, tree, di, drep, mapi_dissect_element_SShortArray_lpi__);
+
+	return offset;
+}
+
+static int
+mapi_dissect_element_SShortArray_lpi__(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint16(tvb, offset, pinfo, tree, di, drep, hf_mapi_SShortArray_lpi, 0);
+
+	return offset;
+}
+
+int
+mapi_dissect_struct_SShortArray(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_)
+{
+	proto_item *item = NULL;
+	proto_tree *tree = NULL;
+	int old_offset;
+
+	ALIGN_TO_5_BYTES;
+
+	old_offset = offset;
+
+	if (parent_tree) {
+		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, -1, ENC_NA);
+		tree = proto_item_add_subtree(item, ett_mapi_SShortArray);
+	}
+
+	offset = mapi_dissect_element_SShortArray_cValues(tvb, offset, pinfo, tree, di, drep);
+
+	offset = mapi_dissect_element_SShortArray_lpi(tvb, offset, pinfo, tree, di, drep);
+
+
+	proto_item_set_len(item, offset-old_offset);
+
+
+	if (di->call_data->flags & DCERPC_IS_NDR64) {
+		ALIGN_TO_5_BYTES;
+	}
+
+	return offset;
+}
+
+
+/* IDL: struct { */
+/* IDL: 	uint32 cValues; */
+/* IDL: 	[size_is(cValues)] [unique(1)] uint32 *lpi; */
+/* IDL: } */
+
+static int
+mapi_dissect_element_MV_UNICODE_STRUCT_cValues(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_mapi_MV_UNICODE_STRUCT_cValues, 0);
+
+	return offset;
+}
+
+static int
+mapi_dissect_element_MV_UNICODE_STRUCT_lpi(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = dissect_ndr_embedded_pointer(tvb, offset, pinfo, tree, di, drep, mapi_dissect_element_MV_UNICODE_STRUCT_lpi_, NDR_POINTER_UNIQUE, "Pointer to Lpi (uint32)",hf_mapi_MV_UNICODE_STRUCT_lpi);
+
+	return offset;
+}
+
+static int
+mapi_dissect_element_MV_UNICODE_STRUCT_lpi_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = dissect_ndr_ucarray(tvb, offset, pinfo, tree, di, drep, mapi_dissect_element_MV_UNICODE_STRUCT_lpi__);
+
+	return offset;
+}
+
+static int
+mapi_dissect_element_MV_UNICODE_STRUCT_lpi__(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_mapi_MV_UNICODE_STRUCT_lpi, 0);
+
+	return offset;
+}
+
+int
+mapi_dissect_struct_MV_UNICODE_STRUCT(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_)
+{
+	proto_item *item = NULL;
+	proto_tree *tree = NULL;
+	int old_offset;
+
+	ALIGN_TO_5_BYTES;
+
+	old_offset = offset;
+
+	if (parent_tree) {
+		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, -1, ENC_NA);
+		tree = proto_item_add_subtree(item, ett_mapi_MV_UNICODE_STRUCT);
+	}
+
+	offset = mapi_dissect_element_MV_UNICODE_STRUCT_cValues(tvb, offset, pinfo, tree, di, drep);
+
+	offset = mapi_dissect_element_MV_UNICODE_STRUCT_lpi(tvb, offset, pinfo, tree, di, drep);
+
+
+	proto_item_set_len(item, offset-old_offset);
+
+
+	if (di->call_data->flags & DCERPC_IS_NDR64) {
+		ALIGN_TO_5_BYTES;
+	}
+
+	return offset;
+}
+
+
+/* IDL: struct { */
+/* IDL: 	uint32 cValues; */
+/* IDL: 	[size_is(cValues)] [unique(1)] FILETIME *lpft; */
+/* IDL: } */
+
+static int
+mapi_dissect_element_SDateTimeArray_cValues(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_mapi_SDateTimeArray_cValues, 0);
+
+	return offset;
+}
+
+static int
+mapi_dissect_element_SDateTimeArray_lpft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = dissect_ndr_embedded_pointer(tvb, offset, pinfo, tree, di, drep, mapi_dissect_element_SDateTimeArray_lpft_, NDR_POINTER_UNIQUE, "Pointer to Lpft (FILETIME)",hf_mapi_SDateTimeArray_lpft);
+
+	return offset;
+}
+
+static int
+mapi_dissect_element_SDateTimeArray_lpft_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = dissect_ndr_ucarray(tvb, offset, pinfo, tree, di, drep, mapi_dissect_element_SDateTimeArray_lpft__);
+
+	return offset;
+}
+
+static int
+mapi_dissect_element_SDateTimeArray_lpft__(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = mapi_dissect_struct_FILETIME(tvb,offset,pinfo,tree,di,drep,hf_mapi_SDateTimeArray_lpft,0);
+
+	return offset;
+}
+
+int
+mapi_dissect_struct_SDateTimeArray(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_)
+{
+	proto_item *item = NULL;
+	proto_tree *tree = NULL;
+	int old_offset;
+
+	ALIGN_TO_5_BYTES;
+
+	old_offset = offset;
+
+	if (parent_tree) {
+		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, -1, ENC_NA);
+		tree = proto_item_add_subtree(item, ett_mapi_SDateTimeArray);
+	}
+
+	offset = mapi_dissect_element_SDateTimeArray_cValues(tvb, offset, pinfo, tree, di, drep);
+
+	offset = mapi_dissect_element_SDateTimeArray_lpft(tvb, offset, pinfo, tree, di, drep);
+
+
+	proto_item_set_len(item, offset-old_offset);
+
+
+	if (di->call_data->flags & DCERPC_IS_NDR64) {
+		ALIGN_TO_5_BYTES;
+	}
+
+	return offset;
+}
+
+
 /* IDL: struct datablob { */
 /* IDL: 	[unique(1)] uint8 *data; */
 /* IDL: 	uint8 length; */
@@ -14137,21 +14506,21 @@ mapi_dissect_struct_Binary_r(tvbuff_t *tvb _U_, int offset _U_, packet_info *pin
 }
 
 
-/* IDL: [switch_type(uint32)] union { */
-/* IDL: [case(0x2)] [case(0x2)] uint16 i; */
-/* IDL: [case(0x3)] [case(0x3)] uint32 l; */
-/* IDL: [case(0x5)] [case(0x5)] dlong dbl; */
-/* IDL: [case(0xb)] [case(0xb)] uint8 b; */
-/* IDL: [case(0x14)] [case(0x14)] dlong d; */
-/* IDL: [case(0x1e)] [case(0x1e)] [charset(DOS)] [unique(1)] uint8 *lpszA; */
-/* IDL: [case(0x102)] [case(0x102)] Binary_r bin; */
-/* IDL: [case(0xFB)] [case(0xFB)] SBinary_short svreid; */
-/* IDL: [case(0x1f)] [case(0x1f)] [charset(UTF16)] [unique(1)] uint16 *lpszW; */
-/* IDL: [case(0x48)] [case(0x48)] [unique(1)] GUID *lpguid; */
-/* IDL: [case(0xFD)] [case(0xFD)] mapi_SRestriction_wrap Restrictions; */
-/* IDL: [case(0xFE)] [case(0xFE)] RuleAction RuleAction; */
-/* IDL: [case(0x40)] [case(0x40)] FILETIME ft; */
-/* IDL: [case(0xa)] [case(0xa)] MAPISTATUS err; */
+/* IDL: [switch_type(property_types)] union { */
+/* IDL: [case(PT_I2)] [case(PT_I2)] uint16 i; */
+/* IDL: [case(PT_LONG)] [case(PT_LONG)] uint32 l; */
+/* IDL: [case(PT_DOUBLE)] [case(PT_DOUBLE)] dlong dbl; */
+/* IDL: [case(PT_BOOLEAN)] [case(PT_BOOLEAN)] uint8 b; */
+/* IDL: [case(PT_I8)] [case(PT_I8)] dlong d; */
+/* IDL: [case(PT_STRING8)] [case(PT_STRING8)] [charset(DOS)] [unique(1)] uint8 *lpszA; */
+/* IDL: [case(PT_BINARY)] [case(PT_BINARY)] Binary_r bin; */
+/* IDL: [case(PT_SVREID)] [case(PT_SVREID)] SBinary_short svreid; */
+/* IDL: [case(PT_UNICODE)] [case(PT_UNICODE)] [charset(UTF16)] [unique(1)] uint16 *lpszW; */
+/* IDL: [case(PT_CLSID)] [case(PT_CLSID)] [unique(1)] GUID *lpguid; */
+/* IDL: [case(PT_SRESTRICT)] [case(PT_SRESTRICT)] mapi_SRestriction_wrap Restrictions; */
+/* IDL: [case(PT_ACTIONS)] [case(PT_ACTIONS)] RuleAction RuleAction; */
+/* IDL: [case(PT_SYSTIME)] [case(PT_SYSTIME)] FILETIME ft; */
+/* IDL: [case(PT_ERROR)] [case(PT_ERROR)] MAPISTATUS err; */
 /* IDL: [case(PT_MV_I2)] [case(PT_MV_I2)] ShortArray_r MVi; */
 /* IDL: [case(PT_MV_LONG)] [case(PT_MV_LONG)] LongArray_r MVl; */
 /* IDL: [case(PT_MV_STRING8)] [case(PT_MV_STRING8)] mapi_SLPSTRArray MVszA; */
@@ -14159,8 +14528,8 @@ mapi_dissect_struct_Binary_r(tvbuff_t *tvb _U_, int offset _U_, packet_info *pin
 /* IDL: [case(PT_MV_CLSID)] [case(PT_MV_CLSID)] mapi_SGuidArray MVguid; */
 /* IDL: [case(PT_MV_UNICODE)] [case(PT_MV_UNICODE)] mapi_SPLSTRArrayW MVszW; */
 /* IDL: [case(PT_MV_SYSTIME)] [case(PT_MV_SYSTIME)] DateTimeArray_r MVft; */
-/* IDL: [case(0x1)] [case(0x1)] uint32 null; */
-/* IDL: [case(0xd)] [case(0xd)] uint32 object; */
+/* IDL: [case(PT_NULL)] [case(PT_NULL)] uint32 null; */
+/* IDL: [case(PT_OBJECT)] [case(PT_OBJECT)] uint32 object; */
 /* IDL: } */
 
 static int
@@ -14394,59 +14763,59 @@ mapi_dissect_SPropValue_CTR(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinf
 	ALIGN_TO_8_BYTES;
 
 	switch(level) {
-		case 0x2:
+		case PT_I2:
 			offset = mapi_dissect_element_SPropValue_CTR_i(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0x3:
+		case PT_LONG:
 			offset = mapi_dissect_element_SPropValue_CTR_l(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0x5:
+		case PT_DOUBLE:
 			offset = mapi_dissect_element_SPropValue_CTR_dbl(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0xb:
+		case PT_BOOLEAN:
 			offset = mapi_dissect_element_SPropValue_CTR_b(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0x14:
+		case PT_I8:
 			offset = mapi_dissect_element_SPropValue_CTR_d(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0x1e:
+		case PT_STRING8:
 			offset = mapi_dissect_element_SPropValue_CTR_lpszA(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0x102:
+		case PT_BINARY:
 			offset = mapi_dissect_element_SPropValue_CTR_bin(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0xFB:
+		case PT_SVREID:
 			offset = mapi_dissect_element_SPropValue_CTR_svreid(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0x1f:
+		case PT_UNICODE:
 			offset = mapi_dissect_element_SPropValue_CTR_lpszW(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0x48:
+		case PT_CLSID:
 			offset = mapi_dissect_element_SPropValue_CTR_lpguid(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0xFD:
+		case PT_SRESTRICT:
 			offset = mapi_dissect_element_SPropValue_CTR_Restrictions(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0xFE:
+		case PT_ACTIONS:
 			offset = mapi_dissect_element_SPropValue_CTR_RuleAction(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0x40:
+		case PT_SYSTIME:
 			offset = mapi_dissect_element_SPropValue_CTR_ft(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0xa:
+		case PT_ERROR:
 			offset = mapi_dissect_element_SPropValue_CTR_err(tvb, offset, pinfo, tree, di, drep);
 		break;
 
@@ -14478,11 +14847,11 @@ mapi_dissect_SPropValue_CTR(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinf
 			offset = mapi_dissect_element_SPropValue_CTR_MVft(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0x1:
+		case PT_NULL:
 			offset = mapi_dissect_element_SPropValue_CTR_null(tvb, offset, pinfo, tree, di, drep);
 		break;
 
-		case 0xd:
+		case PT_OBJECT:
 			offset = mapi_dissect_element_SPropValue_CTR_object(tvb, offset, pinfo, tree, di, drep);
 		break;
 	}
@@ -46547,6 +46916,8 @@ void proto_register_dcerpc_mapi(void)
 	  { "Lpguid", "mapi.MAPINAMEID.lpguid", FT_GUID, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_mapi_MAPINAMEID_ulKind,
 	  { "UlKind", "mapi.MAPINAMEID.ulKind", FT_UINT8, BASE_DEC, VALS(mapi_ulKind_vals), 0, NULL, HFILL }},
+	{ &hf_mapi_MAPIUID_ab,
+	  { "Ab", "mapi.MAPIUID.ab", FT_UINT8, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_mapi_MSGFLAG_READ_CLEAR_NRN_PENDING,
 	  { "CLEAR NRN PENDING", "mapi.MSGFLAG_READ.CLEAR_NRN_PENDING", FT_BOOLEAN, 8, TFS(&MSGFLAG_READ_CLEAR_NRN_PENDING_tfs), ( 0x40 ), NULL, HFILL }},
 	{ &hf_mapi_MSGFLAG_READ_CLEAR_READ_FLAG,
@@ -46559,6 +46930,10 @@ void proto_register_dcerpc_mapi(void)
 	  { "MAPI DEFERRED ERRORS", "mapi.MSGFLAG_READ.MAPI_DEFERRED_ERRORS", FT_BOOLEAN, 8, TFS(&MSGFLAG_READ_MAPI_DEFERRED_ERRORS_tfs), ( 0x08 ), NULL, HFILL }},
 	{ &hf_mapi_MSGFLAG_READ_SUPPRESS_RECEIPT,
 	  { "SUPPRESS RECEIPT", "mapi.MSGFLAG_READ.SUPPRESS_RECEIPT", FT_BOOLEAN, 8, TFS(&MSGFLAG_READ_SUPPRESS_RECEIPT_tfs), ( 0x01 ), NULL, HFILL }},
+	{ &hf_mapi_MV_UNICODE_STRUCT_cValues,
+	  { "CValues", "mapi.MV_UNICODE_STRUCT.cValues", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
+	{ &hf_mapi_MV_UNICODE_STRUCT_lpi,
+	  { "Lpi", "mapi.MV_UNICODE_STRUCT.lpi", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_mapi_MaximumByteCount_value,
 	  { "Value", "mapi.MaximumByteCount.value", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_mapi_MessageClass_lpszA,
@@ -47615,6 +47990,10 @@ void proto_register_dcerpc_mapi(void)
 	  { "Cb", "mapi.SBinary_short.cb", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_mapi_SBinary_short_lpb,
 	  { "Lpb", "mapi.SBinary_short.lpb", FT_UINT8, BASE_DEC, NULL, 0, NULL, HFILL }},
+	{ &hf_mapi_SDateTimeArray_cValues,
+	  { "CValues", "mapi.SDateTimeArray.cValues", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
+	{ &hf_mapi_SDateTimeArray_lpft,
+	  { "Lpft", "mapi.SDateTimeArray.lpft", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_mapi_SRestriction_and_res,
 	  { "Res", "mapi.SRestriction_and.res", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_mapi_SRestriction_and_rt,
@@ -47631,6 +48010,10 @@ void proto_register_dcerpc_mapi(void)
 	  { "Res", "mapi.SRestriction_sub.res", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_mapi_SRestriction_sub_rt,
 	  { "Rt", "mapi.SRestriction_sub.rt", FT_UINT8, BASE_DEC, NULL, 0, NULL, HFILL }},
+	{ &hf_mapi_SShortArray_cValues,
+	  { "CValues", "mapi.SShortArray.cValues", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
+	{ &hf_mapi_SShortArray_lpi,
+	  { "Lpi", "mapi.SShortArray.lpi", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_mapi_SSortOrderSet_aSort,
 	  { "ASort", "mapi.SSortOrderSet.aSort", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_mapi_SSortOrderSet_cCategories,
@@ -48424,6 +48807,10 @@ void proto_register_dcerpc_mapi(void)
 		&ett_mapi_connect_request,
 		&ett_ServerObjectHandleTable,
 		&ett_dcerpc_mapi,
+		&ett_mapi_MAPIUID,
+		&ett_mapi_SShortArray,
+		&ett_mapi_MV_UNICODE_STRUCT,
+		&ett_mapi_SDateTimeArray,
 		&ett_mapi_DATA_BLOB,
 		&ett_mapi_SBinary_short,
 		&ett_mapi_mapi_MV_LONG_STRUCT,
