@@ -2511,6 +2511,7 @@ dissect_ndr_ucvarray_core(tvbuff_t *tvb, int offset, packet_info *pinfo,
 {
     uint32_t     i;
     int          old_offset;
+    uint64_t val;
     int          conformance_size = 4;
 
     if (di->call_data->flags & DCERPC_IS_NDR64) {
@@ -2518,7 +2519,6 @@ dissect_ndr_ucvarray_core(tvbuff_t *tvb, int offset, packet_info *pinfo,
     }
 
     if (di->conformant_run) {
-        uint64_t val;
 
         /* conformant run, just dissect the max_count header */
         old_offset = offset;
@@ -2528,6 +2528,20 @@ dissect_ndr_ucvarray_core(tvbuff_t *tvb, int offset, packet_info *pinfo,
         DISSECTOR_ASSERT(val <= UINT32_MAX);
         di->array_max_count = (uint32_t)val;
         di->array_max_count_offset = offset-conformance_size;
+        // offset = dissect_ndr_uint3264(tvb, offset, pinfo, tree, di, drep,
+        //                                hf_dcerpc_array_offset, &val);
+        // DISSECTOR_ASSERT(val <= UINT32_MAX);
+        // di->array_offset = (uint32_t)val;
+        // di->array_offset_offset = offset-conformance_size;
+        // offset = dissect_ndr_uint3264(tvb, offset, pinfo, tree, di, drep,
+        //                                hf_dcerpc_array_actual_count, &val);
+        // DISSECTOR_ASSERT(val <= UINT32_MAX);
+        // di->array_actual_count = (uint32_t)val;
+        // di->array_actual_count_offset = offset-conformance_size;
+        di->conformant_run = 1;
+        di->conformant_eaten = offset-old_offset;
+    } else {
+        /* we don't remember where in the bytestream these fields were */
         offset = dissect_ndr_uint3264(tvb, offset, pinfo, tree, di, drep,
                                        hf_dcerpc_array_offset, &val);
         DISSECTOR_ASSERT(val <= UINT32_MAX);
@@ -2538,10 +2552,7 @@ dissect_ndr_ucvarray_core(tvbuff_t *tvb, int offset, packet_info *pinfo,
         DISSECTOR_ASSERT(val <= UINT32_MAX);
         di->array_actual_count = (uint32_t)val;
         di->array_actual_count_offset = offset-conformance_size;
-        di->conformant_run = 1;
-        di->conformant_eaten = offset-old_offset;
-    } else {
-        /* we don't remember where in the bytestream these fields were */
+
         proto_tree_add_uint(tree, hf_dcerpc_array_max_count, tvb, di->array_max_count_offset, conformance_size, di->array_max_count);
         proto_tree_add_uint(tree, hf_dcerpc_array_offset, tvb, di->array_offset_offset, conformance_size, di->array_offset);
         proto_tree_add_uint(tree, hf_dcerpc_array_actual_count, tvb, di->array_actual_count_offset, conformance_size, di->array_actual_count);

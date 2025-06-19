@@ -35,6 +35,7 @@ static int ett_nspi_BinaryArray_r;
 static int ett_nspi_FlatUIDArray_r;
 static int ett_nspi_WStringArray_r;
 static int ett_nspi_DateTimeArray_r;
+static int ett_nspi_PROP_VAL_UNION;
 static int ett_nspi_PropertyValue_r;
 static int ett_nspi_PropertyRow_r;
 static int ett_nspi_PropertyRowSet_r;
@@ -56,8 +57,6 @@ static int ett_nspi_PropertyNameSet_r;
 static int ett_nspi_StringsArray_r;
 static int ett_nspi_WStringsArray_r;
 static int ett_nspi_STAT;
-static int ett_nspi_PROP_VAL_UNION;
-static int ett_nspi__PropertyValue_r;
 
 
 /* Header field declarations */
@@ -91,7 +90,6 @@ static int hf_nspi_LongArray_r_lpl;
 static int hf_nspi_NotRestriction_r_lpRes;
 static int hf_nspi_NspiBind_contextHandle;
 static int hf_nspi_NspiBind_dwFlags;
-static int hf_nspi_NspiBind_hRpc;
 static int hf_nspi_NspiBind_pServerGuid;
 static int hf_nspi_NspiBind_pStat;
 static int hf_nspi_NspiCompareMIds_MId1;
@@ -242,6 +240,9 @@ static int hf_nspi_PropertyRow_r_cValues;
 static int hf_nspi_PropertyRow_r_lpProps;
 static int hf_nspi_PropertyTagArray_r_aulPropTag;
 static int hf_nspi_PropertyTagArray_r_cValues;
+static int hf_nspi_PropertyValue_r_Value;
+static int hf_nspi_PropertyValue_r_ulPropTag;
+static int hf_nspi_PropertyValue_r_ulReserved;
 static int hf_nspi_RestrictionUnion_r_resAnd;
 static int hf_nspi_RestrictionUnion_r_resBitMask;
 static int hf_nspi_RestrictionUnion_r_resCompareProps;
@@ -277,9 +278,6 @@ static int hf_nspi_WStringArray_r_cValues;
 static int hf_nspi_WStringArray_r_lppszW;
 static int hf_nspi_WStringsArray_r_Count;
 static int hf_nspi_WStringsArray_r_Strings;
-static int hf_nspi__PropertyValue_r_Value;
-static int hf_nspi__PropertyValue_r_ulPropTag;
-static int hf_nspi__PropertyValue_r_ulReserved;
 static int hf_nspi__Restriction_r_res;
 static int hf_nspi__Restriction_r_rt;
 static int hf_nspi_handle;
@@ -297,6 +295,39 @@ static e_guid_t uuid_dcerpc_nspi = {
 };
 static uint16_t ver_dcerpc_nspi = 56;
 
+const value_string nspi_property_types_vals[] = {
+	{ PT_UNSPECIFIED, "PT_UNSPECIFIED" },
+	{ PT_NULL, "PT_NULL" },
+	{ PT_I2, "PT_I2" },
+	{ PT_LONG, "PT_LONG" },
+	{ PT_R4, "PT_R4" },
+	{ PT_DOUBLE, "PT_DOUBLE" },
+	{ PT_CURRENCY, "PT_CURRENCY" },
+	{ PT_APPTIME, "PT_APPTIME" },
+	{ PT_ERROR, "PT_ERROR" },
+	{ PT_BOOLEAN, "PT_BOOLEAN" },
+	{ PT_OBJECT, "PT_OBJECT" },
+	{ PT_I8, "PT_I8" },
+	{ PT_STRING8, "PT_STRING8" },
+	{ PT_UNICODE, "PT_UNICODE" },
+	{ PT_SYSTIME, "PT_SYSTIME" },
+	{ PT_CLSID, "PT_CLSID" },
+	{ PT_BINARY, "PT_BINARY" },
+	{ PT_MV_I2, "PT_MV_I2" },
+	{ PT_MV_LONG, "PT_MV_LONG" },
+	{ PT_MV_R4, "PT_MV_R4" },
+	{ PT_MV_DOUBLE, "PT_MV_DOUBLE" },
+	{ PT_MV_CURRENCY, "PT_MV_CURRENCY" },
+	{ PT_MV_APPTIME, "PT_MV_APPTIME" },
+	{ PT_MV_I8, "PT_MV_I8" },
+	{ PT_MV_STRING8, "PT_MV_STRING8" },
+	{ PT_MV_TSTRING, "PT_MV_TSTRING" },
+	{ PT_MV_UNICODE, "PT_MV_UNICODE" },
+	{ PT_MV_SYSTIME, "PT_MV_SYSTIME" },
+	{ PT_MV_CLSID, "PT_MV_CLSID" },
+	{ PT_MV_BINARY, "PT_MV_BINARY" },
+{ 0, NULL }
+};
 static int nspi_dissect_element_FILETIME_dwLowDateTime(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_FILETIME_dwHighDateTime(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_FlatUID_r_ab(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
@@ -339,6 +370,30 @@ static int nspi_dissect_element_DateTimeArray_r_cValues(tvbuff_t *tvb _U_, int o
 static int nspi_dissect_element_DateTimeArray_r_lpft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_DateTimeArray_r_lpft_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_DateTimeArray_r_lpft__(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_i(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_l(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_b(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_lpszA(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_lpszA_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_bin(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_lpszW(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_lpszW_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_lpguid(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_lpguid_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_ft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_err(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_MVi(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_MVl(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_MVszA(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_MVbin(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_MVguid(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_MVszW(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_MVft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_lReserved1(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PROP_VAL_UNION_lReserved2(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PropertyValue_r_ulPropTag(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PropertyValue_r_ulReserved(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
+static int nspi_dissect_element_PropertyValue_r_Value(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_PropertyRow_r_Reserved(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_PropertyRow_r_cValues(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_PropertyRow_r_lpProps(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
@@ -430,64 +485,6 @@ static int nspi_dissect_element_STAT_TotalRecs(tvbuff_t *tvb _U_, int offset _U_
 static int nspi_dissect_element_STAT_CodePage(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_STAT_TemplateLocale(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_STAT_SortLocale(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-const value_string nspi_property_types_vals[] = {
-	{ PT_UNSPECIFIED, "PT_UNSPECIFIED" },
-	{ PT_NULL, "PT_NULL" },
-	{ PT_I2, "PT_I2" },
-	{ PT_LONG, "PT_LONG" },
-	{ PT_R4, "PT_R4" },
-	{ PT_DOUBLE, "PT_DOUBLE" },
-	{ PT_CURRENCY, "PT_CURRENCY" },
-	{ PT_APPTIME, "PT_APPTIME" },
-	{ PT_ERROR, "PT_ERROR" },
-	{ PT_BOOLEAN, "PT_BOOLEAN" },
-	{ PT_OBJECT, "PT_OBJECT" },
-	{ PT_I8, "PT_I8" },
-	{ PT_STRING8, "PT_STRING8" },
-	{ PT_UNICODE, "PT_UNICODE" },
-	{ PT_SYSTIME, "PT_SYSTIME" },
-	{ PT_CLSID, "PT_CLSID" },
-	{ PT_BINARY, "PT_BINARY" },
-	{ PT_MV_I2, "PT_MV_I2" },
-	{ PT_MV_LONG, "PT_MV_LONG" },
-	{ PT_MV_R4, "PT_MV_R4" },
-	{ PT_MV_DOUBLE, "PT_MV_DOUBLE" },
-	{ PT_MV_CURRENCY, "PT_MV_CURRENCY" },
-	{ PT_MV_APPTIME, "PT_MV_APPTIME" },
-	{ PT_MV_I8, "PT_MV_I8" },
-	{ PT_MV_STRING8, "PT_MV_STRING8" },
-	{ PT_MV_TSTRING, "PT_MV_TSTRING" },
-	{ PT_MV_UNICODE, "PT_MV_UNICODE" },
-	{ PT_MV_SYSTIME, "PT_MV_SYSTIME" },
-	{ PT_MV_CLSID, "PT_MV_CLSID" },
-	{ PT_MV_BINARY, "PT_MV_BINARY" },
-{ 0, NULL }
-};
-static int nspi_dissect_element_PROP_VAL_UNION_i(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_l(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_b(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_lpszA(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_lpszA_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_bin(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_lpszW(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_lpszW_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_lpguid(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_lpguid_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_ft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_err(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_MVi(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_MVl(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_MVszA(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_MVbin(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_MVguid(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_MVszW(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_MVft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_lReserved1(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_PROP_VAL_UNION_lReserved2(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element__PropertyValue_r_ulPropTag(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element__PropertyValue_r_ulReserved(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element__PropertyValue_r_Value(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
-static int nspi_dissect_element_NspiBind_hRpc(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_NspiBind_dwFlags(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_NspiBind_pStat(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 static int nspi_dissect_element_NspiBind_pStat_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
@@ -688,6 +685,54 @@ static int nspi_dissect_element_NspiResolveNamesW_ppRows_(tvbuff_t *tvb _U_, int
 static int nspi_dissect_element_NspiResolveNamesW_ppRows__(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_);
 
 
+/* IDL: enum { */
+/* IDL: 	PT_UNSPECIFIED=0x0000, */
+/* IDL: 	PT_NULL=0x0001, */
+/* IDL: 	PT_I2=0x0002, */
+/* IDL: 	PT_LONG=0x0003, */
+/* IDL: 	PT_R4=0x0004, */
+/* IDL: 	PT_DOUBLE=0x0005, */
+/* IDL: 	PT_CURRENCY=0x0006, */
+/* IDL: 	PT_APPTIME=0x0007, */
+/* IDL: 	PT_ERROR=0x000a, */
+/* IDL: 	PT_BOOLEAN=0x000b, */
+/* IDL: 	PT_OBJECT=0x000d, */
+/* IDL: 	PT_I8=0x0014, */
+/* IDL: 	PT_STRING8=0x001e, */
+/* IDL: 	PT_UNICODE=0x001f, */
+/* IDL: 	PT_SYSTIME=0x0040, */
+/* IDL: 	PT_CLSID=0x0048, */
+/* IDL: 	PT_BINARY=0x0102, */
+/* IDL: 	PT_MV_I2=0x1002, */
+/* IDL: 	PT_MV_LONG=0x1003, */
+/* IDL: 	PT_MV_R4=0x1004, */
+/* IDL: 	PT_MV_DOUBLE=0x1005, */
+/* IDL: 	PT_MV_CURRENCY=0x1006, */
+/* IDL: 	PT_MV_APPTIME=0x1007, */
+/* IDL: 	PT_MV_I8=0x1014, */
+/* IDL: 	PT_MV_STRING8=0x101e, */
+/* IDL: 	PT_MV_TSTRING=0x101e, */
+/* IDL: 	PT_MV_UNICODE=0x101f, */
+/* IDL: 	PT_MV_SYSTIME=0x1040, */
+/* IDL: 	PT_MV_CLSID=0x1048, */
+/* IDL: 	PT_MV_BINARY=0x1102, */
+/* IDL: } */
+
+int
+nspi_dissect_enum_property_types(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t *param _U_)
+{
+	uint32_t parameter=0;
+	if (param) {
+		parameter = *param;
+	}
+	offset = dissect_ndr_uint32(tvb, offset, pinfo, tree, di, drep, hf_index, &parameter);
+	if (param) {
+		*param = parameter;
+	}
+	return offset;
+}
+
+
 /* IDL: struct _FILETIME { */
 /* IDL: 	uint32 dwLowDateTime; */
 /* IDL: 	uint32 dwHighDateTime; */
@@ -788,8 +833,8 @@ nspi_dissect_struct_FlatUID_r(tvbuff_t *tvb _U_, int offset _U_, packet_info *pi
 
 
 /* IDL: struct PropertyTagArray_r { */
-/* IDL: 	uint32 cValues; */
-/* IDL: 	[length_is(cValues)] [range(0,100001)] [size_is(cValues+1)] uint32 aulPropTag[*]; */
+/* IDL: 	[range(0,100001)] uint32 cValues; */
+/* IDL: 	[length_is(cValues)] [size_is(cValues+1)] uint32 aulPropTag[*]; */
 /* IDL: } */
 
 static int
@@ -1430,13 +1475,331 @@ nspi_dissect_struct_DateTimeArray_r(tvbuff_t *tvb _U_, int offset _U_, packet_in
 }
 
 
-/* IDL: struct _PropertyValue_r { */
+/* IDL: [switch_type(uint32)] union { */
+/* IDL: [case(PT_I2)] [case(PT_I2)] uint16 i; */
+/* IDL: [case(PT_LONG)] [case(PT_LONG)] int32 l; */
+/* IDL: [case(PT_BOOLEAN)] [case(PT_BOOLEAN)] uint16 b; */
+/* IDL: [case(PT_STRING8)] [case(PT_STRING8)] [unique(1)] uint8 *lpszA; */
+/* IDL: [case(PT_BINARY)] [case(PT_BINARY)] Binary_r bin; */
+/* IDL: [case(PT_UNICODE)] [case(PT_UNICODE)] [unique(1)] uint16 *lpszW; */
+/* IDL: [case(PT_CLSID)] [case(PT_CLSID)] [unique(1)] FlatUID_r *lpguid; */
+/* IDL: [case(PT_SYSTIME)] [case(PT_SYSTIME)] FILETIME ft; */
+/* IDL: [case(PT_ERROR)] [case(PT_ERROR)] int32 err; */
+/* IDL: [case(PT_MV_I2)] [case(PT_MV_I2)] ShortArray_r MVi; */
+/* IDL: [case(PT_MV_LONG)] [case(PT_MV_LONG)] LongArray_r MVl; */
+/* IDL: [case(PT_MV_TSTRING)] [case(PT_MV_TSTRING)] StringArray_r MVszA; */
+/* IDL: [case(PT_MV_BINARY)] [case(PT_MV_BINARY)] BinaryArray_r MVbin; */
+/* IDL: [case(PT_MV_CLSID)] [case(PT_MV_CLSID)] FlatUIDArray_r MVguid; */
+/* IDL: [case(PT_MV_UNICODE)] [case(PT_MV_UNICODE)] WStringArray_r MVszW; */
+/* IDL: [case(PT_MV_SYSTIME)] [case(PT_MV_SYSTIME)] DateTimeArray_r MVft; */
+/* IDL: [case(PT_NULL)] [case(PT_NULL)] int32 lReserved1; */
+/* IDL: [case(PT_OBJECT)] [case(PT_OBJECT)] int32 lReserved2; */
 /* IDL: } */
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_i(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint16(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_i, 0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_l(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_l, 0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_b(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint16(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_b, 0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_lpszA(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = dissect_ndr_embedded_pointer(tvb, offset, pinfo, tree, di, drep, nspi_dissect_element_PROP_VAL_UNION_lpszA_, NDR_POINTER_UNIQUE, "Pointer to LpszA (uint8)",hf_nspi_PROP_VAL_UNION_lpszA);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_lpszA_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	char *data;
+
+	offset = dissect_ndr_cvstring(tvb, offset, pinfo, tree, di, drep, sizeof(uint8_t), hf_nspi_PROP_VAL_UNION_lpszA, false, &data);
+	proto_item_append_text(tree, ": %s", data);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_bin(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_struct_Binary_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_bin,0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_lpszW(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = dissect_ndr_embedded_pointer(tvb, offset, pinfo, tree, di, drep, nspi_dissect_element_PROP_VAL_UNION_lpszW_, NDR_POINTER_UNIQUE, "Pointer to LpszW (uint16)",hf_nspi_PROP_VAL_UNION_lpszW);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_lpszW_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	char *data;
+
+	offset = dissect_ndr_cvstring(tvb, offset, pinfo, tree, di, drep, sizeof(uint16_t), hf_nspi_PROP_VAL_UNION_lpszW, false, &data);
+	proto_item_append_text(tree, ": %s", data);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_lpguid(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = dissect_ndr_embedded_pointer(tvb, offset, pinfo, tree, di, drep, nspi_dissect_element_PROP_VAL_UNION_lpguid_, NDR_POINTER_UNIQUE, "Pointer to Lpguid (FlatUID_r)",hf_nspi_PROP_VAL_UNION_lpguid);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_lpguid_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_struct_FlatUID_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_lpguid,0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_ft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_struct_FILETIME(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_ft,0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_err(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_err, 0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_MVi(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_struct_ShortArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVi,0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_MVl(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_struct_LongArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVl,0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_MVszA(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_struct_StringArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVszA,0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_MVbin(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_struct_BinaryArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVbin,0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_MVguid(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_struct_FlatUIDArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVguid,0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_MVszW(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_struct_WStringArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVszW,0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_MVft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_struct_DateTimeArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVft,0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_lReserved1(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_lReserved1, 0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PROP_VAL_UNION_lReserved2(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_lReserved2, 0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_PROP_VAL_UNION(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_)
+{
+	proto_item *item = NULL;
+	proto_tree *tree = NULL;
+	int old_offset;
+	uint32_t level;
+
+	old_offset = offset;
+	if (parent_tree) {
+		tree = proto_tree_add_subtree(parent_tree, tvb, offset, -1, ett_nspi_PROP_VAL_UNION, &item, "PROP_VAL_UNION");
+	}
+
+	offset = dissect_ndr_uint32(tvb, offset, pinfo, tree, di, drep, hf_index, &level);
+	ALIGN_TO_4_BYTES;
+
+	switch(level) {
+		case PT_I2:
+			offset = nspi_dissect_element_PROP_VAL_UNION_i(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_LONG:
+			offset = nspi_dissect_element_PROP_VAL_UNION_l(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_BOOLEAN:
+			offset = nspi_dissect_element_PROP_VAL_UNION_b(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_STRING8:
+			offset = nspi_dissect_element_PROP_VAL_UNION_lpszA(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_BINARY:
+			offset = nspi_dissect_element_PROP_VAL_UNION_bin(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_UNICODE:
+			offset = nspi_dissect_element_PROP_VAL_UNION_lpszW(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_CLSID:
+			offset = nspi_dissect_element_PROP_VAL_UNION_lpguid(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_SYSTIME:
+			offset = nspi_dissect_element_PROP_VAL_UNION_ft(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_ERROR:
+			offset = nspi_dissect_element_PROP_VAL_UNION_err(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_MV_I2:
+			offset = nspi_dissect_element_PROP_VAL_UNION_MVi(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_MV_LONG:
+			offset = nspi_dissect_element_PROP_VAL_UNION_MVl(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_MV_TSTRING:
+			offset = nspi_dissect_element_PROP_VAL_UNION_MVszA(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_MV_BINARY:
+			offset = nspi_dissect_element_PROP_VAL_UNION_MVbin(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_MV_CLSID:
+			offset = nspi_dissect_element_PROP_VAL_UNION_MVguid(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_MV_UNICODE:
+			offset = nspi_dissect_element_PROP_VAL_UNION_MVszW(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_MV_SYSTIME:
+			offset = nspi_dissect_element_PROP_VAL_UNION_MVft(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_NULL:
+			offset = nspi_dissect_element_PROP_VAL_UNION_lReserved1(tvb, offset, pinfo, tree, di, drep);
+		break;
+
+		case PT_OBJECT:
+			offset = nspi_dissect_element_PROP_VAL_UNION_lReserved2(tvb, offset, pinfo, tree, di, drep);
+		break;
+	}
+	proto_item_set_len(item, offset-old_offset);
+
+
+	return offset;
+}
+
+/* IDL: struct _PropertyValue_r { */
+/* IDL: 	uint32 ulPropTag; */
+/* IDL: 	uint32 ulReserved; */
+/* IDL: 	[switch_is((long)(ulPropTag&0x0000FFFF))] PROP_VAL_UNION Value; */
+/* IDL: } */
+
+static int
+nspi_dissect_element_PropertyValue_r_ulPropTag(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi_PropertyValue_r_ulPropTag, 0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PropertyValue_r_ulReserved(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi_PropertyValue_r_ulReserved, 0);
+
+	return offset;
+}
+
+static int
+nspi_dissect_element_PropertyValue_r_Value(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
+{
+	offset = nspi_dissect_PROP_VAL_UNION(tvb, offset, pinfo, tree, di, drep, hf_nspi_PropertyValue_r_Value, 0);
+
+	return offset;
+}
 
 int
 nspi_dissect_struct_PropertyValue_r(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_)
 {
 	proto_item *item = NULL;
+	proto_tree *tree = NULL;
 	int old_offset;
 
 	ALIGN_TO_4_BYTES;
@@ -1445,7 +1808,14 @@ nspi_dissect_struct_PropertyValue_r(tvbuff_t *tvb _U_, int offset _U_, packet_in
 
 	if (parent_tree) {
 		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, -1, ENC_NA);
+		tree = proto_item_add_subtree(item, ett_nspi_PropertyValue_r);
 	}
+
+	offset = nspi_dissect_element_PropertyValue_r_ulPropTag(tvb, offset, pinfo, tree, di, drep);
+
+	offset = nspi_dissect_element_PropertyValue_r_ulReserved(tvb, offset, pinfo, tree, di, drep);
+
+	offset = nspi_dissect_element_PropertyValue_r_Value(tvb, offset, pinfo, tree, di, drep);
 
 
 	proto_item_set_len(item, offset-old_offset);
@@ -2921,412 +3291,6 @@ nspi_dissect_struct_STAT(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _
 	return offset;
 }
 
-
-/* IDL: enum { */
-/* IDL: 	PT_UNSPECIFIED=0x0000, */
-/* IDL: 	PT_NULL=0x0001, */
-/* IDL: 	PT_I2=0x0002, */
-/* IDL: 	PT_LONG=0x0003, */
-/* IDL: 	PT_R4=0x0004, */
-/* IDL: 	PT_DOUBLE=0x0005, */
-/* IDL: 	PT_CURRENCY=0x0006, */
-/* IDL: 	PT_APPTIME=0x0007, */
-/* IDL: 	PT_ERROR=0x000a, */
-/* IDL: 	PT_BOOLEAN=0x000b, */
-/* IDL: 	PT_OBJECT=0x000d, */
-/* IDL: 	PT_I8=0x0014, */
-/* IDL: 	PT_STRING8=0x001e, */
-/* IDL: 	PT_UNICODE=0x001f, */
-/* IDL: 	PT_SYSTIME=0x0040, */
-/* IDL: 	PT_CLSID=0x0048, */
-/* IDL: 	PT_BINARY=0x0102, */
-/* IDL: 	PT_MV_I2=0x1002, */
-/* IDL: 	PT_MV_LONG=0x1003, */
-/* IDL: 	PT_MV_R4=0x1004, */
-/* IDL: 	PT_MV_DOUBLE=0x1005, */
-/* IDL: 	PT_MV_CURRENCY=0x1006, */
-/* IDL: 	PT_MV_APPTIME=0x1007, */
-/* IDL: 	PT_MV_I8=0x1014, */
-/* IDL: 	PT_MV_STRING8=0x101e, */
-/* IDL: 	PT_MV_TSTRING=0x101e, */
-/* IDL: 	PT_MV_UNICODE=0x101f, */
-/* IDL: 	PT_MV_SYSTIME=0x1040, */
-/* IDL: 	PT_MV_CLSID=0x1048, */
-/* IDL: 	PT_MV_BINARY=0x1102, */
-/* IDL: } */
-
-int
-nspi_dissect_enum_property_types(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t *param _U_)
-{
-	uint32_t parameter=0;
-	if (param) {
-		parameter = *param;
-	}
-	offset = dissect_ndr_uint32(tvb, offset, pinfo, tree, di, drep, hf_index, &parameter);
-	if (param) {
-		*param = parameter;
-	}
-	return offset;
-}
-
-
-/* IDL: [switch_type(long)] union { */
-/* IDL: [case(PT_I2)] [case(PT_I2)] uint16 i; */
-/* IDL: [case(PT_LONG)] [case(PT_LONG)] int32 l; */
-/* IDL: [case(PT_BOOLEAN)] [case(PT_BOOLEAN)] uint16 b; */
-/* IDL: [case(PT_STRING8)] [case(PT_STRING8)] [unique(1)] uint8 *lpszA; */
-/* IDL: [case(PT_BINARY)] [case(PT_BINARY)] Binary_r bin; */
-/* IDL: [case(PT_UNICODE)] [case(PT_UNICODE)] [unique(1)] uint16 *lpszW; */
-/* IDL: [case(PT_CLSID)] [case(PT_CLSID)] [unique(1)] FlatUID_r *lpguid; */
-/* IDL: [case(PT_SYSTIME)] [case(PT_SYSTIME)] FILETIME ft; */
-/* IDL: [case(PT_ERROR)] [case(PT_ERROR)] int32 err; */
-/* IDL: [case(PT_MV_I2)] [case(PT_MV_I2)] ShortArray_r MVi; */
-/* IDL: [case(PT_MV_LONG)] [case(PT_MV_LONG)] LongArray_r MVl; */
-/* IDL: [case(PT_MV_TSTRING)] [case(PT_MV_TSTRING)] StringArray_r MVszA; */
-/* IDL: [case(PT_MV_BINARY)] [case(PT_MV_BINARY)] BinaryArray_r MVbin; */
-/* IDL: [case(PT_MV_CLSID)] [case(PT_MV_CLSID)] FlatUIDArray_r MVguid; */
-/* IDL: [case(PT_MV_UNICODE)] [case(PT_MV_UNICODE)] WStringArray_r MVszW; */
-/* IDL: [case(PT_MV_SYSTIME)] [case(PT_MV_SYSTIME)] DateTimeArray_r MVft; */
-/* IDL: [case(PT_NULL)] [case(PT_NULL)] int32 lReserved1; */
-/* IDL: [case(PT_OBJECT)] [case(PT_OBJECT)] int32 lReserved2; */
-/* IDL: } */
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_i(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = PIDL_dissect_uint16(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_i, 0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_l(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_l, 0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_b(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = PIDL_dissect_uint16(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_b, 0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_lpszA(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = dissect_ndr_embedded_pointer(tvb, offset, pinfo, tree, di, drep, nspi_dissect_element_PROP_VAL_UNION_lpszA_, NDR_POINTER_UNIQUE, "Pointer to LpszA (uint8)",hf_nspi_PROP_VAL_UNION_lpszA);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_lpszA_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	char *data;
-
-	offset = dissect_ndr_cvstring(tvb, offset, pinfo, tree, di, drep, sizeof(uint8_t), hf_nspi_PROP_VAL_UNION_lpszA, false, &data);
-	proto_item_append_text(tree, ": %s", data);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_bin(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_struct_Binary_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_bin,0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_lpszW(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = dissect_ndr_embedded_pointer(tvb, offset, pinfo, tree, di, drep, nspi_dissect_element_PROP_VAL_UNION_lpszW_, NDR_POINTER_UNIQUE, "Pointer to LpszW (uint16)",hf_nspi_PROP_VAL_UNION_lpszW);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_lpszW_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	char *data;
-
-	offset = dissect_ndr_cvstring(tvb, offset, pinfo, tree, di, drep, sizeof(uint16_t), hf_nspi_PROP_VAL_UNION_lpszW, false, &data);
-	proto_item_append_text(tree, ": %s", data);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_lpguid(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = dissect_ndr_embedded_pointer(tvb, offset, pinfo, tree, di, drep, nspi_dissect_element_PROP_VAL_UNION_lpguid_, NDR_POINTER_UNIQUE, "Pointer to Lpguid (FlatUID_r)",hf_nspi_PROP_VAL_UNION_lpguid);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_lpguid_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_struct_FlatUID_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_lpguid,0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_ft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_struct_FILETIME(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_ft,0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_err(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_err, 0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_MVi(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_struct_ShortArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVi,0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_MVl(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_struct_LongArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVl,0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_MVszA(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_struct_StringArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVszA,0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_MVbin(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_struct_BinaryArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVbin,0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_MVguid(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_struct_FlatUIDArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVguid,0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_MVszW(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_struct_WStringArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVszW,0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_MVft(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_struct_DateTimeArray_r(tvb,offset,pinfo,tree,di,drep,hf_nspi_PROP_VAL_UNION_MVft,0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_lReserved1(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_lReserved1, 0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_PROP_VAL_UNION_lReserved2(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi_PROP_VAL_UNION_lReserved2, 0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_PROP_VAL_UNION(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_)
-{
-	proto_item *item = NULL;
-	proto_tree *tree = NULL;
-	int old_offset;
-	uint32_t level = param;
-
-	old_offset = offset;
-	if (parent_tree) {
-		tree = proto_tree_add_subtree(parent_tree, tvb, offset, -1, ett_nspi_PROP_VAL_UNION, &item, "PROP_VAL_UNION");
-	}
-
-	switch(level) {
-		case PT_I2:
-			offset = nspi_dissect_element_PROP_VAL_UNION_i(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_LONG:
-			offset = nspi_dissect_element_PROP_VAL_UNION_l(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_BOOLEAN:
-			offset = nspi_dissect_element_PROP_VAL_UNION_b(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_STRING8:
-			offset = nspi_dissect_element_PROP_VAL_UNION_lpszA(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_BINARY:
-			offset = nspi_dissect_element_PROP_VAL_UNION_bin(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_UNICODE:
-			offset = nspi_dissect_element_PROP_VAL_UNION_lpszW(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_CLSID:
-			offset = nspi_dissect_element_PROP_VAL_UNION_lpguid(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_SYSTIME:
-			offset = nspi_dissect_element_PROP_VAL_UNION_ft(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_ERROR:
-			offset = nspi_dissect_element_PROP_VAL_UNION_err(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_MV_I2:
-			offset = nspi_dissect_element_PROP_VAL_UNION_MVi(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_MV_LONG:
-			offset = nspi_dissect_element_PROP_VAL_UNION_MVl(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_MV_TSTRING:
-			offset = nspi_dissect_element_PROP_VAL_UNION_MVszA(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_MV_BINARY:
-			offset = nspi_dissect_element_PROP_VAL_UNION_MVbin(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_MV_CLSID:
-			offset = nspi_dissect_element_PROP_VAL_UNION_MVguid(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_MV_UNICODE:
-			offset = nspi_dissect_element_PROP_VAL_UNION_MVszW(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_MV_SYSTIME:
-			offset = nspi_dissect_element_PROP_VAL_UNION_MVft(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_NULL:
-			offset = nspi_dissect_element_PROP_VAL_UNION_lReserved1(tvb, offset, pinfo, tree, di, drep);
-		break;
-
-		case PT_OBJECT:
-			offset = nspi_dissect_element_PROP_VAL_UNION_lReserved2(tvb, offset, pinfo, tree, di, drep);
-		break;
-	}
-	proto_item_set_len(item, offset-old_offset);
-
-
-	return offset;
-}
-/* IDL: struct _PropertyValue_r { */
-/* IDL: 	uint32 ulPropTag; */
-/* IDL: 	uint32 ulReserved; */
-/* IDL: 	[switch_is((long)(ulPropTag&0x0000FFFF))] PROP_VAL_UNION Value; */
-/* IDL: } */
-
-static int
-nspi_dissect_element__PropertyValue_r_ulPropTag(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi__PropertyValue_r_ulPropTag, 0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element__PropertyValue_r_ulReserved(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, di, drep, hf_nspi__PropertyValue_r_ulReserved, 0);
-
-	return offset;
-}
-
-static int
-nspi_dissect_element__PropertyValue_r_Value(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = nspi_dissect_PROP_VAL_UNION(tvb, offset, pinfo, tree, di, drep, hf_nspi__PropertyValue_r_Value, 0);
-
-	return offset;
-}
-
-int
-nspi_dissect_struct__PropertyValue_r(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_, int hf_index _U_, uint32_t param _U_)
-{
-	proto_item *item = NULL;
-	proto_tree *tree = NULL;
-	int old_offset;
-
-	ALIGN_TO_4_BYTES;
-
-	old_offset = offset;
-
-	if (parent_tree) {
-		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, -1, ENC_NA);
-		tree = proto_item_add_subtree(item, ett_nspi__PropertyValue_r);
-	}
-
-	offset = nspi_dissect_element__PropertyValue_r_ulPropTag(tvb, offset, pinfo, tree, di, drep);
-
-	offset = nspi_dissect_element__PropertyValue_r_ulReserved(tvb, offset, pinfo, tree, di, drep);
-
-	offset = nspi_dissect_element__PropertyValue_r_Value(tvb, offset, pinfo, tree, di, drep);
-
-
-	proto_item_set_len(item, offset-old_offset);
-
-
-	if (di->call_data->flags & DCERPC_IS_NDR64) {
-		ALIGN_TO_4_BYTES;
-	}
-
-	return offset;
-}
-
-static int
-nspi_dissect_element_NspiBind_hRpc(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
-{
-	offset = PIDL_dissect_uint64(tvb, offset, pinfo, tree, di, drep, hf_nspi_NspiBind_hRpc, 0);
-
-	return offset;
-}
-
 static int
 nspi_dissect_element_NspiBind_dwFlags(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
 {
@@ -3384,7 +3348,6 @@ nspi_dissect_element_NspiBind_contextHandle_(tvbuff_t *tvb _U_, int offset _U_, 
 }
 
 /* IDL: DWORD NspiBind( */
-/* IDL: [in] uint64 hRpc, */
 /* IDL: [in] uint32 dwFlags, */
 /* IDL: [in] [ref] STAT *pStat, */
 /* IDL: [in] [out] [unique(1)] FlatUID_r *pServerGuid, */
@@ -3414,8 +3377,6 @@ static int
 nspi_dissect_NspiBind_request(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, uint8_t *drep _U_)
 {
 	di->dcerpc_procedure_name="NspiBind";
-	offset = nspi_dissect_element_NspiBind_hRpc(tvb, offset, pinfo, tree, di, drep);
-	offset = dissect_deferred_pointers(pinfo, tvb, offset, di, drep);
 	offset = nspi_dissect_element_NspiBind_dwFlags(tvb, offset, pinfo, tree, di, drep);
 	offset = dissect_deferred_pointers(pinfo, tvb, offset, di, drep);
 	offset = nspi_dissect_element_NspiBind_pStat(tvb, offset, pinfo, tree, di, drep);
@@ -5910,8 +5871,6 @@ void proto_register_dcerpc_nspi(void)
 	  { "ContextHandle", "nspi.NspiBind.contextHandle", FT_BYTES, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_nspi_NspiBind_dwFlags,
 	  { "DwFlags", "nspi.NspiBind.dwFlags", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
-	{ &hf_nspi_NspiBind_hRpc,
-	  { "HRpc", "nspi.NspiBind.hRpc", FT_UINT64, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_nspi_NspiBind_pServerGuid,
 	  { "PServerGuid", "nspi.NspiBind.pServerGuid", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_nspi_NspiBind_pStat,
@@ -6212,6 +6171,12 @@ void proto_register_dcerpc_nspi(void)
 	  { "AulPropTag", "nspi.PropertyTagArray_r.aulPropTag", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_nspi_PropertyTagArray_r_cValues,
 	  { "CValues", "nspi.PropertyTagArray_r.cValues", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
+	{ &hf_nspi_PropertyValue_r_Value,
+	  { "Value", "nspi.PropertyValue_r.Value", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
+	{ &hf_nspi_PropertyValue_r_ulPropTag,
+	  { "UlPropTag", "nspi.PropertyValue_r.ulPropTag", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
+	{ &hf_nspi_PropertyValue_r_ulReserved,
+	  { "UlReserved", "nspi.PropertyValue_r.ulReserved", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_nspi_RestrictionUnion_r_resAnd,
 	  { "ResAnd", "nspi.RestrictionUnion_r.resAnd", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_nspi_RestrictionUnion_r_resBitMask,
@@ -6282,12 +6247,6 @@ void proto_register_dcerpc_nspi(void)
 	  { "Count", "nspi.WStringsArray_r.Count", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_nspi_WStringsArray_r_Strings,
 	  { "Strings", "nspi.WStringsArray_r.Strings", FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL }},
-	{ &hf_nspi__PropertyValue_r_Value,
-	  { "Value", "nspi._PropertyValue_r.Value", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
-	{ &hf_nspi__PropertyValue_r_ulPropTag,
-	  { "UlPropTag", "nspi._PropertyValue_r.ulPropTag", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
-	{ &hf_nspi__PropertyValue_r_ulReserved,
-	  { "UlReserved", "nspi._PropertyValue_r.ulReserved", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_nspi__Restriction_r_res,
 	  { "Res", "nspi._Restriction_r.res", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_nspi__Restriction_r_rt,
@@ -6316,6 +6275,7 @@ void proto_register_dcerpc_nspi(void)
 		&ett_nspi_FlatUIDArray_r,
 		&ett_nspi_WStringArray_r,
 		&ett_nspi_DateTimeArray_r,
+		&ett_nspi_PROP_VAL_UNION,
 		&ett_nspi_PropertyValue_r,
 		&ett_nspi_PropertyRow_r,
 		&ett_nspi_PropertyRowSet_r,
@@ -6337,8 +6297,6 @@ void proto_register_dcerpc_nspi(void)
 		&ett_nspi_StringsArray_r,
 		&ett_nspi_WStringsArray_r,
 		&ett_nspi_STAT,
-		&ett_nspi_PROP_VAL_UNION,
-		&ett_nspi__PropertyValue_r,
 	};
 
 	proto_dcerpc_nspi = proto_register_protocol("Exchange Name Service Provider", "NSPI", "nspi");
