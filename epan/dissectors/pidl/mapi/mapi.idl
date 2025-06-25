@@ -16,27 +16,64 @@ import "nspi.idl";
 #include "mapitags_enum.h"
 
 /* Property types */
-#define  PT_UNSPECIFIED    0x0
-#define  PT_NULL     0x1
-#define  PT_I2     0x2
-#define  PT_SHORT    0x2
-#define  PT_LONG     0x3
-#define  PT_FLOAT    0x4
-#define  PT_DOUBLE   0x5
-#define  PT_CURRENCY   0x6
-#define  PT_APPTIME    0x7
-#define  PT_ERROR    0xa
-#define  PT_BOOLEAN    0xb
-#define  PT_OBJECT   0xd
-#define  PT_I8     0x14
-#define  PT_STRING8    0x1e
-#define  PT_UNICODE    0x1f
-#define  PT_SYSTIME    0x40
-#define  PT_CLSID    0x48
-#define  PT_SVREID   0xFB
-#define  PT_SRESTRICT    0xFD
-#define  PT_ACTIONS    0xFE
-#define  PT_BINARY   0x102
+typedef [v1_enum] enum {
+	PT_UNSPECIFIED	= 0x0000,
+	PT_NULL		= 0x0001,
+	PT_I2		= 0x0002,
+	PT_LONG		= 0x0003,
+	PT_R4		= 0x0004,
+	PT_DOUBLE	= 0x0005,
+	PT_CURRENCY	= 0x0006,
+	PT_APPTIME	= 0x0007,
+	PT_ERROR	= 0x000a,	/* means the given attr contains no value */
+	PT_BOOLEAN	= 0x000b,
+	PT_OBJECT	= 0x000d,
+	PT_I8		= 0x0014,
+	PT_STRING8	= 0x001e,
+	PT_UNICODE	= 0x001f,
+	PT_SYSTIME	= 0x0040,
+	PT_CLSID	= 0x0048,
+        PT_SVREID	= 0x00FB,
+        PT_SRESTRICT    = 0x00FD,
+        PT_ACTIONS      = 0x00FE,
+	PT_BINARY	= 0x0102,
+
+	/* Multi-valued properties */
+
+	PT_MV_I2	= 0x1002,
+	PT_MV_LONG	= 0x1003,
+	PT_MV_R4	= 0x1004,
+	PT_MV_DOUBLE	= 0x1005,
+	PT_MV_CURRENCY	= 0x1006,
+	PT_MV_APPTIME	= 0x1007,
+	PT_MV_I8	= 0x1014,
+	PT_MV_STRING8	= 0x101e,
+//		PT_MV_TSTRING	= 0x101e,
+	PT_MV_UNICODE	= 0x101f,
+	PT_MV_SYSTIME	= 0x1040,
+	PT_MV_CLSID	= 0x1048,
+	PT_MV_BINARY	= 0x1102
+} property_types;
+
+typedef struct _MAPIUID{
+	uint8 ab[16];
+} MAPIUID;
+
+typedef struct {
+	uint32 cValues;
+	[size_is(cValues)] uint16 *lpi;
+} SShortArray;
+
+typedef struct {
+	uint32 cValues;
+	[size_is(cValues)] uint32 *lpi;
+} MV_UNICODE_STRUCT;
+
+typedef struct {
+	uint32 cValues;
+	[size_is(cValues)] FILETIME *lpft;
+} SDateTimeArray;
+
 
   typedef struct datablob {
     uint8 *data;
@@ -422,28 +459,28 @@ import "nspi.idl";
      [range(0,100000)] uint32  cValues;
      [size_is(cValues)] uint16 *lpi;
    } ShortArray_r;
-  
+
    typedef struct {
      [range(0,100000)] uint32  cValues;
      [size_is(cValues)] uint32 *lpl;
    } LongArray_r;
-  
+
    typedef struct {
      [range(0,100000)] uint32  cValues;
      [size_is(cValues)] Binary_r *lpbin;
    } BinaryArray_r;
-  
+
    typedef struct {
      [range(0,100000)] uint32  cValues;
      [size_is(cValues)] FILETIME *lpft;
    } DateTimeArray_r;
-  
+
   typedef [public] struct {
    [range(0,2097152)] uint32       cb;
    [size_is(cb)] uint8   *lpb;
   } Binary_r;
 
-  typedef [switch_type(uint32)] union {
+  typedef [switch_type(property_types)] union {
     [case(PT_I2)]     uint16      i;
     [case(PT_LONG)]     uint32      l;
     [case(PT_DOUBLE)]   dlong     dbl;
@@ -3510,7 +3547,7 @@ import "nspi.idl";
   WERROR mapi_EcGetMoreRpc(
     [in, out, ref] policy_handle * pcxh,
     [in][out] [size_is(usSize), length_is(*pusLength)] uint8 *rgb,
-    [in][out] uint16 *pusLength, 
+    [in][out] uint16 *pusLength,
     [in] uint16 usSize
     );
 
@@ -3602,7 +3639,7 @@ import "nspi.idl";
     AUX_SERVER_SESSION_INFO = 0x4B,
     AUX_PROTOCOL_DEVICE_IDENTIFICATION = 0x4E
   } AUX_HEADER_TYPE_1;
- 
+
   typedef [enum8bit,flag(NDR_PAHEX)] enum {
     AUX_TYPE_PERF_SESSIONINFO_2     = 0x04,
     AUX_TYPE_PERF_MDB_SUCCESS_2     = 0x07,
@@ -3621,20 +3658,20 @@ import "nspi.idl";
     AUX_VERSION_1 = 0x1,
     AUX_VERSION_2 = 0x2
   } AUX_VERSION;
- 
+
   typedef [switch_type(uint8)] union {
     [case(AUX_VERSION_1)] AUX_HEADER_TYPE_1 Type;
     [case(AUX_VERSION_2)] AUX_HEADER_TYPE_2 Type_2;
     [default];
   } AUX_HEADER_TYPE_ENUM;
- 
+
   /*************************/
   /* AUX_HEADER case (0x1) */
   typedef [flag(NDR_NOALIGN)] struct {
     uint16    SessionID;
     uint16    RequestID;
   } AUX_PERF_REQUESTID;
- 
+
   /*************************/
   /* AUX_HEADER case (0x2) */
   typedef [public,enum16bit, flag(NDR_PAHEX)] enum {
@@ -3642,7 +3679,7 @@ import "nspi.idl";
     CLIENTMODE_CLASSIC  = 0x1,
     CLIENTMODE_CACHED = 0x2
   } ClientMode;
- 
+
   typedef [public,flag(NDR_NOALIGN)] struct {
     uint32    AdapterSpeed;
     uint16    ClientID;
@@ -3664,7 +3701,7 @@ import "nspi.idl";
     nstring   AdapterName;
     uint8   MacAddress[0];
   } AUX_PERF_CLIENTINFO;
- 
+
   /*************************/
   /* AUX_HEADER case (0x3) */
   typedef [enum16bit,flag(NDR_PAHEX)] enum {
@@ -3674,7 +3711,7 @@ import "nspi.idl";
     SERVERTYPE_DIRECTORY    = 0x3,
     SERVERTYPE_REFERRAL   = 0x4
   } SERVERINFO_ServerType;
- 
+
   typedef [flag(NDR_NOALIGN)] struct {
     uint16      ServerID;
     SERVERINFO_ServerType ServerType;
@@ -3683,7 +3720,7 @@ import "nspi.idl";
     nstring     ServerDN;
     nstring     ServerName;
   } AUX_PERF_SERVERINFO;
- 
+
   /*************************/
   /* AUX_HEADER case (0x4) */
   typedef [flag(NDR_NOALIGN)] struct {
@@ -3691,14 +3728,14 @@ import "nspi.idl";
     uint16    Reserved;
     GUID    SessionGuid;
   } AUX_PERF_SESSIONINFO;
- 
+
   typedef [flag(NDR_NOALIGN)] struct {
     uint16    SessionID;
     uint16    Reserved;
     GUID    SessionGuid;
     uint32    ConnectionID;
   } AUX_PERF_SESSIONINFO_V2;
- 
+
   /**************************/
   /* AUX_HEADER case (0x5)  */
   /* AUX_HEADER case (0xC)  */
@@ -3709,7 +3746,7 @@ import "nspi.idl";
     uint16    RequestID;
     uint16    Reserved;
   } AUX_PERF_DEFMDB_SUCCESS;
- 
+
   /**************************/
   /* AUX_HEADER case (0x6)  */
   /* AUX_HEADER case (0xD)  */
@@ -3721,7 +3758,7 @@ import "nspi.idl";
     uint8   RequestOperation;
     uint8   Reserved[3];
   } AUX_PERF_DEFGC_SUCCESS;
- 
+
   /**************************/
   /* AUX_HEADER case (0x7)  */
   /* AUX_HEADER case (0xE)  */
@@ -3735,7 +3772,7 @@ import "nspi.idl";
     uint32    TimeSinceRequest;
     uint32    TimeToCompleteRequest;
   } AUX_PERF_MDB_SUCCESS;
- 
+
   typedef [flag(NDR_NOALIGN)] struct {
     uint16    ProcessID;
     uint16    ClientID;
@@ -3746,7 +3783,7 @@ import "nspi.idl";
     uint32    TimeSinceRequest;
     uint32    TimeToCompleteRequest;
   } AUX_PERF_MDB_SUCCESS_V2;
- 
+
   /**************************/
   /* AUX_HEADER case (0x8)  */
   typedef [flag(NDR_NOALIGN)] struct {
@@ -3759,7 +3796,7 @@ import "nspi.idl";
     uint8   RequestOperation;
     uint8   Reserved_2[3];
   } AUX_PERF_GC_SUCCESS;
- 
+
   typedef [flag(NDR_NOALIGN)] struct {
     uint16    ProcessID;
     uint16    ClientID;
@@ -3770,7 +3807,7 @@ import "nspi.idl";
     uint8   RequestOperation;
     uint8   Reserved[3];
   } AUX_PERF_GC_SUCCESS_V2;
- 
+
   /**************************/
   /* AUX_HEADER case (0x9)  */
   typedef [flag(NDR_NOALIGN)] struct {
@@ -3784,7 +3821,7 @@ import "nspi.idl";
     uint8   RequestOperation;
     uint8   Reserved[3];
   } AUX_PERF_FAILURE;
- 
+
   typedef [flag(NDR_NOALIGN)] struct {
     uint16    ProcessID;
     uint16    ClientID;
@@ -3798,7 +3835,7 @@ import "nspi.idl";
     uint8   RequestOperation;
     uint8   Reserved_2[3];
   } AUX_PERF_FAILURE_V2;
- 
+
   /**************************/
   /* AUX_HEADER case (0xA)  */
   typedef [bitmap32bit] bitmap {
@@ -3808,12 +3845,12 @@ import "nspi.idl";
     ENABLE_HTTP_TUNNELING   = 0x00000008,
     ENABLE_PERF_SENDGCDATA    = 0x00000010
   } CLIENT_CONTROL_EnableFlags;
- 
+
   typedef [flag(NDR_NOALIGN)] struct {
     CLIENT_CONTROL_EnableFlags  EnableFlags;
     uint32        ExpiryTime;
   } AUX_CLIENT_CONTROL;
- 
+
   /*************************/
   /* AUX_HEADER case (0xB) */
   typedef [flag(NDR_NOALIGN)] struct {
@@ -3824,7 +3861,7 @@ import "nspi.idl";
     uint16    Reserved2;
     nstring   ProcessName;
   } AUX_PERF_PROCESSINFO;
- 
+
   /**************************/
   /* AUX_HEADER case (0x16) */
   typedef [flag(NDR_NOALIGN)] struct {
@@ -3837,13 +3874,13 @@ import "nspi.idl";
     uint16    ServicePackMinor;
     uint32    Reserved_2;
   } AUX_OSVERSIONINFO;
- 
+
   /**************************/
   /* AUX_HEADER case (0x17) */
   typedef [bitmap32bit] bitmap {
     PUBLIC_FOLDERS_ENABLED  = 0x00000001
   } EXORGINFO_OrgFlags;
- 
+
   typedef [flag(NDR_NOALIGN)] struct {
     EXORGINFO_OrgFlags  OrgFlags;
   } AUX_EXORGINFO;
@@ -3911,7 +3948,7 @@ import "nspi.idl";
   typedef [public,nopull,noprint,flag(NDR_NOALIGN)] struct {
     uint16                Size;
     AUX_VERSION           Version;
-    
+
     /* Switch based on the version. Not really a union in NDR */
     [switch_is(Version)]  AUX_HEADER_TYPE_ENUM  hdrType;
 
@@ -3924,7 +3961,7 @@ import "nspi.idl";
     RHEF_XorMagic   = 0x0002,
     RHEF_Last       = 0x0004
   } RPC_HEADER_EXT_Flags;
- 
+
   typedef [public] struct {
     uint16      Version;
     RPC_HEADER_EXT_Flags  Flags;
@@ -4036,7 +4073,7 @@ import "nspi.idl";
   /* Function: 0x0d */
   WERROR mapi_EcDoAsyncWait(
     [in] policy_handle *cxh,
-    [in] long ulFlagsIn, 
+    [in] long ulFlagsIn,
     [out] long *pulFlagsOut
     );
 
