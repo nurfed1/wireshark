@@ -2312,6 +2312,11 @@ dissect_ntlmssp_payload(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, voi
   uint32_t              ntlm_magic_size     = 4;
   uint32_t              ntlm_signature_size = 8;
   uint32_t              ntlm_seq_size       = 4;
+  tvbuff_t *volatile    decr_tvb;
+  tvbuff_t**            ret_decr_tvb = (tvbuff_t**)data;
+
+  if (ret_decr_tvb)
+    *ret_decr_tvb = NULL;
 
   length = tvb_captured_length (tvb);
   /* signature + seq + real payload */
@@ -2357,7 +2362,10 @@ dissect_ntlmssp_payload(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, voi
     memset(key, 0, sizeof(key));
     tvb_memcpy(tvb, key, offset, ntlm_signature_size + ntlm_seq_size);
     /* Try to decrypt */
-    decrypt_data_payload (tvb, offset+(ntlm_signature_size + ntlm_seq_size), encrypted_block_length-(ntlm_signature_size + ntlm_seq_size), pinfo, ntlmssp_tree, key);
+    decr_tvb = decrypt_data_payload (tvb, offset+(ntlm_signature_size + ntlm_seq_size), encrypted_block_length-(ntlm_signature_size + ntlm_seq_size), pinfo, ntlmssp_tree, key);
+    if (ret_decr_tvb)
+      *ret_decr_tvb = decr_tvb;
+
     store_verifier (tvb, offset, ntlm_signature_size + ntlm_seq_size, pinfo);
     decrypt_verifier (tvb, pinfo);
     /* let's try to hook ourselves here */
